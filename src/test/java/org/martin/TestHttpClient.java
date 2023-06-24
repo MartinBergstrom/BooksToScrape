@@ -73,4 +73,17 @@ class TestHttpClient {
         assertThat(response.getContentType()).isEqualTo("text/html");
         assertThat(response.getRawData()).isNotEmpty();
     }
+
+    @Test
+    void shouldUseProvidedPath() {
+        // Given
+        String path = "http://mytest.com";
+
+        // When
+        ResponseEntity response = myHttpClient.getRequest(path);
+
+        // Then
+        HttpGet get = myHttpGetCaptor.getValue();
+        assertThat(get.getURI().toString()).isEqualTo(path);
+    }
 }
