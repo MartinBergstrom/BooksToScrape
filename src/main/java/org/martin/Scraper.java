@@ -67,11 +67,13 @@ public class Scraper {
 
     private Set<String> extractAllRefs(Document doc) {
         Set<String> aLinks = doc.select("a").stream().map(element -> element.attr("href")).collect(Collectors.toSet());
+        Set<String> linkHrefs = doc.select("link").stream().map(element -> element.attr("href")).collect(Collectors.toSet());
         Set<String> imgTags = doc.select("img").stream().map(element -> element.attr("src")).collect(Collectors.toSet());
         Set<String> srcLinks = doc.select("scr").stream().map(element -> element.attr("href")).collect(Collectors.toSet());
 
         Set<String> finalSet = new HashSet<>();
         finalSet.addAll(aLinks);
+        finalSet.addAll(linkHrefs);
         finalSet.addAll(imgTags);
         finalSet.addAll(srcLinks);
         return finalSet;
