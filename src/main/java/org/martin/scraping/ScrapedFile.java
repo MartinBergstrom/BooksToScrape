@@ -1,4 +1,4 @@
-package org.martin;
+package org.martin.scraping;
 
 public class ScrapedFile {
     private final String myRelativePath;

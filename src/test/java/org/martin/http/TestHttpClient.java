@@ -1,4 +1,4 @@
-package org.martin;
+package org.martin.http;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;

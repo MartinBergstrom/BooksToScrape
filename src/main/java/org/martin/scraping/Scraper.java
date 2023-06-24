@@ -1,12 +1,12 @@
-package org.martin;
+package org.martin.scraping;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.martin.http.ResponseEntity;
+import org.martin.http.HttpClient;
 
-import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.text.DecimalFormat;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -39,11 +39,11 @@ public class Scraper {
         ResponseEntity responseEntity = myHttpClient.getRequest(baseURI.toString());
         myVisited.add(baseURI.toString());
 
+        addToQueue(responseEntity, baseURI);
+
         String contentType = responseEntity.getContentType();
         if (contentType.equals("text/html")) {
             String html = new String(responseEntity.getRawData());
-
-            addToQueue(responseEntity, baseURI);
 
             Document doc = Jsoup.parse(html);
             Set<String> hrefs = extractAllRefs(doc);
@@ -52,8 +52,6 @@ public class Scraper {
             resolvedURIs.removeIf(uri -> myVisited.contains(uri.toString()));
 
             resolvedURIs.forEach(resolvedURI -> myExecutorService.submit(() -> scrape(resolvedURI)));
-        } else {
-            addToQueue(responseEntity, baseURI);
         }
     }
 
@@ -77,17 +75,6 @@ public class Scraper {
         finalSet.addAll(imgTags);
         finalSet.addAll(srcLinks);
         return finalSet;
-    }
-
-    // TODO
-    private void writeToFile(ResponseEntity responseEntity, String path) {
-        double sizeInKiloBytes = (double) responseEntity.getRawData().length / 1024;
-        DecimalFormat decimalFormat = new DecimalFormat("#");
-        decimalFormat.setRoundingMode(RoundingMode.HALF_UP);
-        String roundedValue = decimalFormat.format(sizeInKiloBytes);
-
-        System.out.println("Writing type of data: " + responseEntity.getContentType() +
-                " to file on path: " + path + " , size: " + roundedValue + "kB");
     }
 
     private Set<URI> resolveURI(URI baseURI, Set<String> links) {

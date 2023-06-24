@@ -1,5 +1,9 @@
 package org.martin;
 
+import org.martin.scraping.ScrapedFile;
+import org.martin.scraping.Scraper;
+import org.martin.writing.ScrapedDataFileWriter;
+
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 

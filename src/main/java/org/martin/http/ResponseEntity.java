@@ -1,4 +1,4 @@
-package org.martin;
+package org.martin.http;
 
 public class ResponseEntity {
     private final String myContentType;

@@ -1,4 +1,4 @@
-package org.martin;
+package org.martin.http;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -6,6 +6,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.martin.VisibleOnlyForTesting;
 
 import java.io.IOException;
 
@@ -16,7 +17,7 @@ public class HttpClient {
         this(HttpClients.custom());
     }
 
-    // Visible for testing
+    @VisibleOnlyForTesting
     HttpClient(HttpClientBuilder httpClientBuilder) {
         myHttpClientBuilder = httpClientBuilder;
     }

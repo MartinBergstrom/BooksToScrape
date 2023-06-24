@@ -1,4 +1,6 @@
-package org.martin;
+package org.martin.writing;
+
+import org.martin.scraping.ScrapedFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,7 +30,7 @@ public class ScrapedDataFileWriter implements Runnable {
     }
 
     public void writeData(byte[] rawData, String fileName) {
-        System.out.println("Writing to disc file: " + fileName);
+        System.out.println("Writing to disc: " + fileName);
         File file = new File(BASE_DIR + File.separator + fileName);
         File parentDir = file.getParentFile();
         if (parentDir != null && !parentDir.exists()) {
