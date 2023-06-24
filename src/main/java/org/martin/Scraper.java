@@ -3,50 +3,55 @@ package org.martin;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
+import java.text.DecimalFormat;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class Scraper {
-    private final String myBaseUrl;
+    private final URI myBaseURI;
     private final HttpClient myHttpClient;
-    private final Set<URI> myVisited = new HashSet<>();
+    private final Set<String> myVisited = ConcurrentHashMap.newKeySet();
+    private final ExecutorService myExecutorService;
 
-    public Scraper(String baseUrl) {
-        myBaseUrl = baseUrl;
+    public Scraper(String baseUrl) throws URISyntaxException {
+        myBaseURI = new URI(baseUrl);
         myHttpClient = new HttpClient();
+        myExecutorService = Executors.newFixedThreadPool(10);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(myExecutorService::shutdown));
     }
 
-    public void start() throws URISyntaxException {
-        scrape(new URI(myBaseUrl));
+    public void start() {
+        myExecutorService.submit(() -> scrape(myBaseURI));
     }
 
     private void scrape(URI baseURI) {
         ResponseEntity responseEntity = myHttpClient.getRequest(baseURI.toString());
-        myVisited.add(baseURI);
+        myVisited.add(baseURI.toString());
 
         String contentType = responseEntity.getContentType();
         if (contentType.equals("text/html")) {
             String html = new String(responseEntity.getRawData());
 
             // TODO
-            writeToFile(responseEntity.getContentType(), baseURI.toString());
+            writeToFile(responseEntity, baseURI.toString());
 
             Document doc = Jsoup.parse(html);
             Set<String> hrefs = extractAllRefs(doc);
 
             Set<URI> resolvedURIs = resolveURI(baseURI, hrefs);
-            resolvedURIs.removeAll(myVisited);
+            resolvedURIs.removeIf(uri -> myVisited.contains(uri.toString()));
 
-            for (List<URI> chunk : splitUpIntoChunks(resolvedURIs)) {
-                chunk.forEach(this::scrape);
-            }
+            resolvedURIs.forEach(resolvedURI -> myExecutorService.submit(() -> scrape(resolvedURI)));
         } else {
-            handleNonHtmlContentType(baseURI, contentType, responseEntity);
+            handleNonHtmlContentType(baseURI, responseEntity);
         }
     }
 
@@ -62,13 +67,19 @@ public class Scraper {
         return finalSet;
     }
 
-    private void handleNonHtmlContentType(URI baseURI, String contentType, ResponseEntity responseEntity) {
-        writeToFile(contentType, baseURI.toString());
+    private void handleNonHtmlContentType(URI baseURI, ResponseEntity responseEntity) {
+        writeToFile(responseEntity, baseURI.toString());
     }
 
     // TODO
-    private void writeToFile(String type, String path) {
-        System.out.println("Writing type of data: " + type + " to file on path: " + path);
+    private void writeToFile(ResponseEntity responseEntity, String path) {
+        double sizeInKiloBytes = (double) responseEntity.getRawData().length / 1024;
+        DecimalFormat decimalFormat = new DecimalFormat("#");
+        decimalFormat.setRoundingMode(RoundingMode.HALF_UP);
+        String roundedValue = decimalFormat.format(sizeInKiloBytes);
+
+        System.out.println("Writing type of data: " + responseEntity.getContentType() +
+                " to file on path: " + path + " , size: " + roundedValue + "kB");
     }
 
     private Set<URI> resolveURI(URI baseURI, Set<String> links) {
@@ -80,25 +91,8 @@ public class Scraper {
                         throw new RuntimeException(e);
                     }
                 }).map(baseURI::resolve)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(HashSet::new));
     }
 
 
-    private List<List<URI>> splitUpIntoChunks(Set<URI> myLinks) {
-        int count = 0;
-        List<List<URI>> result = new ArrayList<>();
-        List<URI> batch = new ArrayList<>();
-
-        for (URI link : myLinks) {
-            batch.add(link);
-            count++;
-
-            if (count == 10) {
-                result.add(batch);
-                batch = new ArrayList<>();
-                count = 0;
-            }
-        }
-        return result;
-    }
 }
