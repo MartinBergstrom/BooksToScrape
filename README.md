@@ -8,7 +8,7 @@ Run the built jar located in folder
 **/target**
 named
 
-**BooksToScrape-<version>-jar-with-dependencies.jar**
+**BooksToScrape-\<version\>-jar-with-dependencies.jar**
 
 Example
 
