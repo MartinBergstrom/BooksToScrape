@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 import java.text.DecimalFormat;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,8 +20,10 @@ public class Scraper {
     private final HttpClient myHttpClient;
     private final Set<String> myVisited = ConcurrentHashMap.newKeySet();
     private final ExecutorService myExecutorService;
+    private final BlockingQueue<ScrapedFile> myQueue;
 
-    public Scraper(String baseUrl) throws URISyntaxException {
+    public Scraper(String baseUrl, BlockingQueue<ScrapedFile> blockingQueue) throws URISyntaxException {
+        myQueue = blockingQueue;
         myBaseURI = new URI(baseUrl);
         myHttpClient = new HttpClient();
         myExecutorService = Executors.newFixedThreadPool(10);
@@ -29,7 +32,7 @@ public class Scraper {
     }
 
     public void start() {
-        myExecutorService.submit(() -> scrape(myBaseURI));
+        myExecutorService.submit(() -> scrape(myBaseURI.resolve("index.html")));
     }
 
     private void scrape(URI baseURI) {
@@ -40,8 +43,7 @@ public class Scraper {
         if (contentType.equals("text/html")) {
             String html = new String(responseEntity.getRawData());
 
-            // TODO
-            writeToFile(responseEntity, baseURI.toString());
+            addToQueue(responseEntity, baseURI);
 
             Document doc = Jsoup.parse(html);
             Set<String> hrefs = extractAllRefs(doc);
@@ -51,8 +53,16 @@ public class Scraper {
 
             resolvedURIs.forEach(resolvedURI -> myExecutorService.submit(() -> scrape(resolvedURI)));
         } else {
-            handleNonHtmlContentType(baseURI, responseEntity);
+            addToQueue(responseEntity, baseURI);
         }
+    }
+
+    private void addToQueue(ResponseEntity responseEntity, URI uri) {
+        String baseUri = myBaseURI.toString();
+        String relativePath = uri.toString().substring(baseUri.length());
+        ScrapedFile scrapedFile = new ScrapedFile(relativePath, responseEntity.getRawData());
+
+        myQueue.add(scrapedFile);
     }
 
     private Set<String> extractAllRefs(Document doc) {
@@ -65,10 +75,6 @@ public class Scraper {
         finalSet.addAll(imgTags);
         finalSet.addAll(srcLinks);
         return finalSet;
-    }
-
-    private void handleNonHtmlContentType(URI baseURI, ResponseEntity responseEntity) {
-        writeToFile(responseEntity, baseURI.toString());
     }
 
     // TODO
