@@ -3,40 +3,37 @@ package org.martin.http;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
-import org.martin.VisibleOnlyForTesting;
 
 import java.io.IOException;
 
 public class HttpClient {
-    private final HttpClientBuilder myHttpClientBuilder;
+    private static final PoolingHttpClientConnectionManager connectionManager;
+    private static final CloseableHttpClient myHttpClient;
 
-    public HttpClient() {
-        this(HttpClients.custom());
+    static {
+        connectionManager = new PoolingHttpClientConnectionManager();
+        connectionManager.setMaxTotal(200);
+        connectionManager.setDefaultMaxPerRoute(200);
+        myHttpClient = HttpClients.custom().setConnectionManager(connectionManager).build();
     }
-
-    @VisibleOnlyForTesting
-    HttpClient(HttpClientBuilder httpClientBuilder) {
-        myHttpClientBuilder = httpClientBuilder;
-    }
-
 
     public ResponseEntity getRequest(String path) {
+
         HttpGet request = new HttpGet(path);
 
-        try (CloseableHttpClient client = myHttpClientBuilder.build();
-             CloseableHttpResponse response = client.execute(request)) {
+        try (CloseableHttpResponse response = myHttpClient.execute(request)) {
 
             int responseCode = response.getStatusLine().getStatusCode();
             if (responseCode == 200) {
                 String contentType = response.getEntity().getContentType().getValue();
                 byte[] rawData = EntityUtils.toByteArray(response.getEntity());
+                EntityUtils.consume(response.getEntity());
                 return new ResponseEntity(contentType, rawData);
             } else {
-                System.err.println("Response code for request: " + path +
-                        " was: " + responseCode);
+                System.err.println("Response code for request: " + path + " was: " + responseCode);
                 throw new RuntimeException();
             }
 

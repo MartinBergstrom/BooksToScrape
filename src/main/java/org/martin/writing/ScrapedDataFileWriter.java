@@ -21,6 +21,8 @@ public class ScrapedDataFileWriter implements Runnable {
     public void run() {
         try {
             while (true) {
+                if (myQueue.isEmpty())
+                    System.out.println("Empty queue...");
                 ScrapedFile file = myQueue.take();
                 writeData(file.getRawData(), file.getRelativePath());
             }
@@ -30,7 +32,7 @@ public class ScrapedDataFileWriter implements Runnable {
     }
 
     public void writeData(byte[] rawData, String fileName) {
-        System.out.println("Writing to disc: " + fileName);
+        //System.out.println("Writing to disc: " + fileName);
         File file = new File(BASE_DIR + File.separator + fileName);
         File parentDir = file.getParentFile();
         if (parentDir != null && !parentDir.exists()) {

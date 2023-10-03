@@ -22,11 +22,11 @@ public class Scraper {
     private final ExecutorService myExecutorService;
     private final BlockingQueue<ScrapedFile> myQueue;
 
-    public Scraper(String baseUrl, BlockingQueue<ScrapedFile> blockingQueue) throws URISyntaxException {
+    public Scraper(String baseUrl, BlockingQueue<ScrapedFile> blockingQueue, int nThreads) throws URISyntaxException {
         myQueue = blockingQueue;
         myBaseURI = new URI(baseUrl);
         myHttpClient = new HttpClient();
-        myExecutorService = Executors.newFixedThreadPool(10);
+        myExecutorService = Executors.newFixedThreadPool(nThreads);
 
         Runtime.getRuntime().addShutdownHook(new Thread(myExecutorService::shutdown));
     }
